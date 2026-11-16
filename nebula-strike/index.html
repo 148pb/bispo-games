@@ -66,9 +66,9 @@ button:disabled{opacity:.45;cursor:default}
   filter:drop-shadow(0 0 14px rgba(62,230,255,.35))}
 .tag{color:var(--muted);font-size:14px;margin:0 0 16px}
 h2{font-family:var(--display);font-weight:400;font-size:24px;margin:2px 0 10px;letter-spacing:1px}
-.stats{display:flex;justify-content:center;gap:10px;margin:0 0 16px;flex-wrap:wrap}
-.stat{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:14px;padding:8px 12px;min-width:86px}
-.stat b{display:block;font-family:var(--display);font-weight:400;font-size:20px}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 16px}
+.stat{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:14px;padding:8px 6px;min-width:0}
+.stat b{display:block;font-family:var(--display);font-weight:400;font-size:clamp(15px,4.6vw,20px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .stat span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
 .btn{display:block;width:100%;padding:14px 16px;border-radius:14px;font-size:16px;margin:8px 0;background:var(--panel2);border:1px solid var(--line)}
 .btn.pri{background:linear-gradient(180deg,#5af0ff,#18b6d6);color:#04122a;border:0;font-size:18px;box-shadow:0 6px 20px rgba(62,230,255,.3)}
@@ -153,7 +153,7 @@ h2{font-family:var(--display);font-weight:400;font-size:24px;margin:2px 0 10px;l
   <div class="ov" id="ovHangar" hidden>
     <div class="card">
       <h2 data-i="hangar"></h2>
-      <div class="stats" style="margin-bottom:10px"><span class="pill gem" id="sGems">0</span></div>
+      <div style="display:flex;justify-content:center;margin:0 0 10px"><span class="pill gem" id="sGems">0</span></div>
       <div class="tabs"><button id="tUp" class="on" data-i="upgrades"></button><button id="tShips" data-i="ships"></button></div>
       <div class="list" id="shopList"></div>
       <button class="btn ad" id="bFreeGems" data-i="freeGems"></button>
