@@ -548,6 +548,7 @@ const EDEF = {
 function hpScale(){ return 1 + (run.wave-1)*.14; }
 function spdScale(){ return 1.15 + Math.min(run.wave-1, 20)*.028; }
 function nextWave(){
+  if (run.wave >= 1 && pl.gun < 5) dropPow(60 + Math.random()*(VW-120), 90, "W"); // a weapon upgrade after every wave cleared
   run.wave++; run.waveT = 0; run.queue = [];
   const w = run.wave;
   if (w % 5 === 0){ banner(T("waveN",{n:w}), T("bossIn")); snd(140,.8,"sawtooth",.08,70); run.queue.push({t:2.2, f:()=>spawnBoss()}); return; }
@@ -614,8 +615,8 @@ function floatTxt(x, y, s, c){ floats.push({x, y, s, c: c||"#fff", l: .9}); }
 
 /* ---------- drops ---------- */
 function dropGems(x, y, n){ for (let i=0;i<n;i++) drops.push({k:"gem", x: x + (Math.random()-.5)*20, y: y + (Math.random()-.5)*20, vx: (Math.random()-.5)*80, vy: -40 - Math.random()*60, r: 8}); }
-function dropPow(x, y){ const pool = ["W","W","W","S","S","M","B"]; if (pl.hp < pl.max) pool.push("H","H");
-  drops.push({k:"pw", p: pool[Math.floor(Math.random()*pool.length)], x, y, vx: 0, vy: 40, r: 13}); }
+function dropPow(x, y, force){ const pool = ["W","W","W","W","W","S","S","M","B"]; if (pl.hp < pl.max) pool.push("H","H");
+  drops.push({k:"pw", p: force || pool[Math.floor(Math.random()*pool.length)], x, y, vx: 0, vy: 40, r: 13}); }
 function takePow(p){
   snd(660,.12,"triangle",.07,1320); setTimeout(() => snd(990,.12,"triangle",.06,1760), 80);
   if (p === "W"){ if (pl.gun < 5) pl.gun++; else { run.score += 250; } }
@@ -639,7 +640,7 @@ function kill(e){
   const sc = (isBoss ? 1000*(run.wave/5) : d.sc) * mult; run.score += sc;
   if (isBoss){ explode(e.x, e.y, true); for (let i=0;i<6;i++) setTimeout(() => explode(e.x + (Math.random()-.5)*120, e.y + (Math.random()-.5)*70, false), i*110);
     dropGems(e.x, e.y, 30 + run.wave*2); dropPow(e.x-30, e.y); dropPow(e.x+30, e.y); run.boss = null; $("bossBar").hidden = true; banner(T("bossDown"), "+" + sc); vibe(120); }
-  else { explode(e.x, e.y, false); dropGems(e.x, e.y, d.gem); if (Math.random() < (e.type==="tank"?.6:.055)) dropPow(e.x, e.y); if (sc >= 30) floatTxt(e.x, e.y, "+"+sc, "#ffe48a"); }
+  else { explode(e.x, e.y, false); dropGems(e.x, e.y, d.gem); if (Math.random() < (e.type==="tank"?.8:.1)) dropPow(e.x, e.y); if (sc >= 30) floatTxt(e.x, e.y, "+"+sc, "#ffe48a"); }
   if (mult > 1){ $("combo").textContent = T("combo",{n:mult}); $("combo").classList.add("on"); }
 }
 function hurtPlayer(){
