@@ -290,7 +290,7 @@ let noiseBuf = null;
 function boom(big){ if (!prof.sound || !audio()) return; if (!noiseBuf){ noiseBuf = AC.createBuffer(1, AC.sampleRate*.6, AC.sampleRate); const d = noiseBuf.getChannelData(0); for (let i=0;i<d.length;i++) d[i] = (Math.random()*2-1)*Math.pow(1-i/d.length, 2); }
   const s = AC.createBufferSource(), g = AC.createGain(), fl = AC.createBiquadFilter(); s.buffer = noiseBuf; fl.type = "lowpass"; fl.frequency.value = big ? 900 : 1800;
   g.gain.value = big ? .5 : .18; s.connect(fl); fl.connect(g); g.connect(master); s.start(); if (big) snd(90, .6, "sine", .3, 30); }
-let lastShot = 0;
+let lastShot = 0, lastGem = 0;
 function shotSnd(){ const n = performance.now(); if (n-lastShot < 90) return; lastShot = n; snd(880, .06, "square", .018, 440); }
 /* music: simple synthwave loop */
 const BASS = [45,45,48,43], ARP = [0,7,12,7,3,7,12,15];
@@ -312,7 +312,7 @@ function musTick(){ clearTimeout(musTimer); if (!prof.music || !audio() || docum
 function vibe(ms){ if (prof.vibe && navigator.vibrate) try { navigator.vibrate(ms); } catch(e){} }
 
 /* ================= CANVAS & SPRITES ================= */
-const cv = $("cv"), cx = cv.getContext("2d");
+const cv = $("cv"), cx = cv.getContext("2d", {alpha: false, desynchronized: true}) || cv.getContext("2d");
 const VW = 400; let VH = 700, SC = 1, DPR = 1;
 const SPR = {};
 const SHIPS = [ // [main colour, accent, bonus]
@@ -322,7 +322,7 @@ const SHIPS = [ // [main colour, accent, bonus]
   {c:"#ff4fa3", a:"#ffe0ef", rate:0, dmg:0, hp:1, cost:2000},
   {c:"#ffcf3e", a:"#fff6d6", rate:.15, dmg:.2, hp:1, cost:-1} // ad-free bonus
 ];
-function mk(w, h, fn){ const c = document.createElement("canvas"), s = SC*DPR*2; c.width = Math.ceil(w*s); c.height = Math.ceil(h*s);
+function mk(w, h, fn){ const c = document.createElement("canvas"), s = SC*DPR; c.width = Math.ceil(w*s); c.height = Math.ceil(h*s);
   const g = c.getContext("2d"); g.scale(s, s); g.translate(w/2, h/2); fn(g); c._w = w; c._h = h; return c; }
 function glow(g, col, b){ g.shadowColor = col; g.shadowBlur = b; }
 function drawShip(g, col, acc){
@@ -503,9 +503,22 @@ function spr(s, x, y, rot, a, scale){ const w = s._w*(scale||1), h = s._h*(scale
 let stars = [], nebulas = [];
 function initStars(){ stars = []; for (let i=0;i<110;i++) stars.push({x:Math.random()*VW, y:Math.random()*VH, z:Math.random()*.9+.1});
   nebulas = [{x:VW*.2,y:VH*.3,r:VW*.8,c:"rgba(180,60,255,.10)"},{x:VW*.85,y:VH*.7,r:VW*.7,c:"rgba(62,230,255,.08)"},{x:VW*.5,y:VH*1.1,r:VW,c:"rgba(255,79,163,.07)"}]; }
-function resize(){ const r = $("wrap").getBoundingClientRect(); DPR = Math.min(window.devicePixelRatio||1, 3);
+let MAXDPR = 2, BG = null;
+function buildBg(){ // background (gradient + nebulas) drawn once, then just copied every frame
+  const s = SC*DPR, H = Math.ceil(VH*2); BG = document.createElement("canvas"); BG.width = Math.ceil(VW*s); BG.height = Math.ceil(H*s);
+  const g = BG.getContext("2d", {alpha: false}); g.scale(s, s);
+  const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, "#050817"); gr.addColorStop(.5, "#0d1033"); gr.addColorStop(1, "#050817"); g.fillStyle = gr; g.fillRect(0, 0, VW, H);
+  const blobs = [[.2,.15,.8,"rgba(180,60,255,.10)"],[.85,.42,.7,"rgba(62,230,255,.08)"],[.5,.72,1,"rgba(255,79,163,.07)"],[.15,.9,.6,"rgba(62,230,255,.06)"]];
+  for (const [x,y,r,c] of blobs) for (const o of [-H, 0, H]){ const cxp = x*VW, cyp = y*H + o, rr = r*VW; const q = g.createRadialGradient(cxp, cyp, 0, cxp, cyp, rr); q.addColorStop(0, c); q.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = q; g.fillRect(0, Math.max(0,cyp-rr), VW, rr*2); }
+  BG._h = H; }
+/* adaptive quality: if the phone can't keep up, lower the resolution a little */
+let perfT = 0, perfN = 0, perfSlow = 0;
+function perfCheck(raw){ if (state !== "play") return; perfT += raw; perfN++; if (perfN < 90) return;
+  const avg = perfT/perfN; perfT = 0; perfN = 0;
+  if (avg > 1/50){ perfSlow++; if (perfSlow >= 2 && MAXDPR > 1.25){ MAXDPR = MAXDPR > 1.6 ? 1.5 : 1.25; perfSlow = 0; resize(); } } else perfSlow = 0; }
+function resize(){ const r = $("wrap").getBoundingClientRect(); DPR = Math.min(window.devicePixelRatio||1, MAXDPR);
   cv.width = Math.round(r.width*DPR); cv.height = Math.round(r.height*DPR); SC = r.width/VW; VH = r.height/SC;
-  buildSprites(); initStars(); if (pl){ pl.x = Math.min(pl.x, VW-16); pl.y = Math.min(pl.y, VH-40); } }
+  buildSprites(); buildBg(); initStars(); if (pl){ pl.x = Math.min(pl.x, VW-16); pl.y = Math.min(pl.y, VH-40); } }
 
 /* ================= GAME STATE ================= */
 let state = "menu", run = null, pl = null;
@@ -533,15 +546,15 @@ const EDEF = {
   tank:    {hp:22, r:26, sc:80, gem:6, spr:"tank"}
 };
 function hpScale(){ return 1 + (run.wave-1)*.14; }
-function spdScale(){ return 1 + Math.min(run.wave-1, 20)*.025; }
+function spdScale(){ return 1.15 + Math.min(run.wave-1, 20)*.028; }
 function nextWave(){
   run.wave++; run.waveT = 0; run.queue = [];
   const w = run.wave;
   if (w % 5 === 0){ banner(T("waveN",{n:w}), T("bossIn")); snd(140,.8,"sawtooth",.08,70); run.queue.push({t:2.2, f:()=>spawnBoss()}); return; }
   banner(T("waveN",{n:w}), w===1 ? T("ready") : "");
   const pool = ["line","vee"]; if (w>=2) pool.push("zig"); if (w>=3) pool.push("kami"); if (w>=4) pool.push("shooter"); if (w>=6) pool.push("tank"); if (w>=8) pool.push("mix");
-  const groups = 3 + Math.min(4, Math.floor(w/2)); let t = 1.8;
-  for (let i=0;i<groups;i++){ const k = pool[Math.floor(Math.random()*pool.length)]; formation(k, t); t += 2.4 - Math.min(1, w*.05) + Math.random()*.6; }
+  const groups = 3 + Math.min(4, Math.floor(w/2)); let t = 1.4;
+  for (let i=0;i<groups;i++){ const k = pool[Math.floor(Math.random()*pool.length)]; formation(k, t); t += 2.0 - Math.min(.9, w*.05) + Math.random()*.5; }
 }
 function formation(k, t){
   const Q = (dt, type, x, o) => run.queue.push({t: t+dt, f: () => spawn(type, x, o)});
@@ -567,7 +580,7 @@ function spawn(type, x, o){
 function spawnBoss(){
   const n = run.wave/5, hp = Math.round(260*Math.pow(1.55, n-1));
   const b = {type:"boss", x: VW/2, y: -80, hp, max: hp, r: 52, t: 0, hit: 0, phase: 0, fire: 1.5, pat: 0, enter: true};
-  enemies.push(b); run.boss = b; $("bossBar").hidden = false; $("bossFill").style.width = "100%";
+  enemies.push(b); run.boss = b; $("bossBar").hidden = false; $("bossFill").style.width = "100%"; hudC.boss = "100%";
 }
 
 /* ---------- player shooting ---------- */
@@ -588,7 +601,7 @@ function aimAt(x, y){ return Math.atan2(pl.y - y, pl.x - x); }
 const ESPD = () => 150 + Math.min(run.wave, 25)*4;
 
 /* ---------- FX ---------- */
-function burst(x, y, col, n, spd, life){ for (let i=0;i<n;i++){ const a = Math.random()*Math.PI*2, s = (Math.random()*.7+.3)*spd;
+function burst(x, y, col, n, spd, life){ n = Math.min(n, 450 - parts.length); for (let i=0;i<n;i++){ const a = Math.random()*Math.PI*2, s = (Math.random()*.7+.3)*spd;
   parts.push({x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s, l: life*(Math.random()*.5+.5), L: life, c: col, sz: Math.random()*2.5+1.2}); } }
 function explode(x, y, big){ burst(x, y, big?"#ffcf3e":"#ff8a5a", big?70:16, big?260:150, big?1.1:.55); burst(x, y, "#ffffff", big?20:5, big?160:90, .35);
   rings.push({x, y, r: 4, R: big?140:40, l: big?.6:.3, L: big?.6:.3}); boom(big); shake = Math.max(shake, big?14:3); }
@@ -647,7 +660,7 @@ function update(dt){
   if (state !== "play") return;
   run.t += dt;
   // player follows target
-  pl.x += (pl.tx - pl.x) * Math.min(1, dt*22); pl.y += (pl.ty - pl.y) * Math.min(1, dt*22);
+  pl.x += (pl.tx - pl.x) * Math.min(1, dt*28); pl.y += (pl.ty - pl.y) * Math.min(1, dt*28);
   pl.inv = Math.max(0, pl.inv - dt); pl.mag = Math.max(0, pl.mag - dt);
   pl.fire -= dt; if (pl.fire <= 0){ fireGuns(); pl.fire += pl.st.rate; }
   
@@ -656,7 +669,7 @@ function update(dt){
   // spawn queue
   run.waveT += dt;
   for (let i = run.queue.length-1; i >= 0; i--) if (run.queue[i].t <= run.waveT){ const q = run.queue[i]; run.queue.splice(i,1); q.f(); }
-  if (!run.queue.length && !enemies.length){ run.gap -= dt; if (run.gap <= 0){ run.gap = 1.5; nextWave(); } }
+  if (!run.queue.length && !enemies.length){ run.gap -= dt; if (run.gap <= 0){ run.gap = 1.0; nextWave(); } }
   // bullets
   bullets.forEach(b => { b.x += b.vx*dt; b.y += b.vy*dt; });
   bullets = bullets.filter(b => b.y > -20 && b.x > -20 && b.x < VW+20 && !b.dead);
@@ -683,7 +696,7 @@ function update(dt){
   for (const e of enemies){ if (e.dead || e.gone) continue; const rr = e.r*.8 + hr; if ((pl.x-e.x)**2 + (pl.y-e.y)**2 < rr*rr){ if (e.type !== "boss") { e.hp = 0; kill(e); } hurtPlayer(); } }
   for (const b of ebullets){ const rr = b.r + hr - 2; if ((pl.x-b.x)**2 + (pl.y-b.y)**2 < rr*rr){ b.dead = true; hurtPlayer(); } }
   enemies = enemies.filter(e => !e.dead && !e.gone);
-  if (run.boss) $("bossFill").style.width = Math.max(0, run.boss.hp/run.boss.max*100) + "%";
+  if (run.boss){ const bw = Math.max(0, Math.round(run.boss.hp/run.boss.max*200)/2) + "%"; if (hudC.boss !== bw){ hudC.boss = bw; $("bossFill").style.width = bw; } }
   // drops
   const magR = pl.mag > 0 ? 999 : pl.st.mag;
   for (const d of drops){
@@ -691,7 +704,7 @@ function update(dt){
     if (d.k === "gem" && dist < magR){ const s = 520/Math.max(dist, 30); d.vx += dx/dist*s*dt*60; d.vy += dy/dist*s*dt*60; d.vx *= .9; d.vy *= .9; }
     else { d.vy = Math.min(d.vy + 120*dt, d.k==="gem"?110:70); d.vx *= .97; }
     d.x += d.vx*dt; d.y += d.vy*dt;
-    if (dist < d.r + 16){ d.dead = true; if (d.k === "gem"){ run.gems++; snd(1200 + Math.random()*300, .05, "sine", .03); } else takePow(d.p); }
+    if (dist < d.r + 16){ d.dead = true; if (d.k === "gem"){ run.gems++; const nw = performance.now(); if (nw - lastGem > 45){ lastGem = nw; snd(1200 + Math.random()*300, .05, "sine", .03); } } else takePow(d.p); }
     if (d.y > VH + 20) d.dead = true;
   }
   drops = drops.filter(d => !d.dead);
@@ -714,10 +727,11 @@ function updateBoss(b, dt){
 
 /* ================= DRAW ================= */
 function draw(){
-  const s = SC*DPR; cx.setTransform(s, 0, 0, s, 0, 0); cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = "high";
-  // background
-  const g = cx.createLinearGradient(0, 0, 0, VH); g.addColorStop(0, "#050817"); g.addColorStop(1, "#0d1033"); cx.fillStyle = g; cx.fillRect(0, 0, VW, VH);
-  nebulas.forEach((n,i) => { const y = (n.y + scrollY*.08*(i+1)) % (VH*1.6) - VH*.3; const r = cx.createRadialGradient(n.x, y, 0, n.x, y, n.r); r.addColorStop(0, n.c); r.addColorStop(1, "rgba(0,0,0,0)"); cx.fillStyle = r; cx.fillRect(0, 0, VW, VH); });
+  const s = SC*DPR; cx.setTransform(s, 0, 0, s, 0, 0);
+  // background (pre-rendered, scrolls slowly and wraps)
+  { const H = BG._h, k = BG.height/H, off = H - (scrollY*.12) % H; // copy only the visible slice (1 screen of pixels)
+    const h1 = Math.min(VH, H - off); cx.drawImage(BG, 0, off*k, BG.width, h1*k, 0, 0, VW, h1);
+    if (h1 < VH) cx.drawImage(BG, 0, 0, BG.width, (VH-h1)*k, 0, h1, VW, VH-h1); }
   for (const st of stars){ cx.globalAlpha = .3 + st.z*.7; cx.fillStyle = st.z > .8 ? "#bff8ff" : "#ffffff"; const sz = st.z*1.6; if (state==="play") cx.fillRect(st.x, st.y, sz*.7, sz*2.4); else { cx.beginPath(); cx.arc(st.x, st.y, sz/2, 0, 6.283); cx.fill(); } }
   cx.globalAlpha = 1;
   if (shake > 0){ cx.translate((Math.random()-.5)*shake, (Math.random()-.5)*shake); }
@@ -757,7 +771,7 @@ function draw(){
 
 /* ================= LOOP ================= */
 let last = performance.now();
-function loop(now){ const dt = Math.min(.033, (now - last)/1000); last = now; update(dt); draw(); requestAnimationFrame(loop); }
+function loop(now){ const raw = (now - last)/1000, dt = Math.min(.033, raw); last = now; update(dt); draw(); if (raw < .25) perfCheck(raw); requestAnimationFrame(loop); }
 
 /* ================= INPUT ================= */
 let drag = null;
@@ -778,8 +792,10 @@ document.addEventListener("visibilitychange", () => { if (document.hidden){ if (
 /* ================= SCREENS ================= */
 const OVS = ["ovMenu","ovHangar","ovSettings","ovPause","ovRevive","ovOver","ovAd"];
 function show(id){ OVS.forEach(o => $(o).hidden = o !== id); }
-function hud(){ if (!run) return; $("hScore").textContent = run.score.toLocaleString(); $("hWave").textContent = T("waveN",{n: run.wave});
-  $("hGems").textContent = prof.gems + run.gems;
+const hudC = {};
+function setTxt(id, v){ if (hudC[id] !== v){ hudC[id] = v; $(id).textContent = v; } }
+function hud(){ if (!run) return; setTxt("hScore", run.score.toLocaleString()); setTxt("hWave", T("waveN",{n: run.wave}));
+  setTxt("hGems", String(prof.gems + run.gems));
   let h = ""; for (let i=0;i<pl.max;i++) h += '<i class="' + (i < pl.hp ? "on" : "") + '"></i>'; if ($("hHearts")._h !== h){ $("hHearts").innerHTML = h; $("hHearts")._h = h; } }
 function adLabel(btn){ btn.classList.toggle("free", prof.noAds); }
 function menu(){
@@ -837,7 +853,7 @@ function renderShop(){
       h += `<div class="item"><canvas data-sp="${i}" width="180" height="180"></canvas><div class="t"><b>${T("s"+i)}</b><span>${T("s"+i+"d")}</span></div>${b}</div>`; });
   }
   $("shopList").innerHTML = h;
-  $("shopList").querySelectorAll("canvas[data-sp]").forEach(c => { const g = c.getContext("2d"); g.clearRect(0,0,180,180); g.drawImage(SPR["ship"+c.dataset.sp], 10, 0, 160, 176); });
+  $("shopList").querySelectorAll("canvas[data-sp]").forEach(c => { const g = c.getContext("2d"); const sh = SHIPS[+c.dataset.sp]; g.setTransform(1,0,0,1,0,0); g.clearRect(0,0,180,180); g.setTransform(2.7,0,0,2.7,90,92); drawShip(g, sh.c, sh.a); });
 }
 $("shopList").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b || b.disabled) return;
