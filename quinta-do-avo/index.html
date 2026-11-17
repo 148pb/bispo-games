@@ -554,7 +554,7 @@ function farmView(){
   let h=`<div class="scene">${sceneSVG()}<div class="ttl">Quinta do Avô</div><div class="d">${dayName()} · destaque ${ic(star())}</div></div><div class="chips">`;
   if(daily)h+=`<button class="chip hot" data-act="daily">🎁 Prémio do dia</button>`;
   if(rp)h+=`<button class="chip hot" data-act="harvestAll">🧺 Colher tudo (${rp})</button>`;
-  if(ep&&P.coins>=CROP[lastCrop].c)h+=`<button class="chip" data-act="plantAll">${ic(lastCrop)} Plantar nos ${ep} vazios</button>`;
+  if(ep)h+=`<button class="chip" data-act="plantAllPick">🌱 Plantar nos ${ep} vazios</button>`;
   h+=`<button class="chip" data-act="rega"${rega>0||!growing?" disabled":""}>💧 ${rega>0?"Rega em "+ft(rega):"Regar tudo"}${rega>0?"":'<span class="ad">▶ anúncio</span>'}</button></div>`;
   h+=`<h2>🌾 Campos <small>${P.plots.length}/${MAX_PLOTS}</small></h2><div class="field">${P.plots.map(plotHtml).join("")}`;
   if(P.plots.length<MAX_PLOTS)h+=`<button class="plot buy" data-act="buyPlot">+ Campo<br>${coin(plotCost(P.plots.length),1)}</button>`;
@@ -630,7 +630,7 @@ function plotSheet(i){
   if(!p.c)return sheet(()=>`<h3>🌱 Plantar <button class="x" data-act="close">✕</button></h3><div class="muted">Cada colheita dá ${HARVEST}. Tens ${coin(P.coins,1)}</div>`+
     CROPS.map(c=>{const lock=c.lv>P.lv;return `<div class="opt${lock?" lock":""}">${ic(c.id,30)}<div class="grow"><b>${ITEMS[c.id].n}</b><div class="muted">${lock?"🔒 Nível "+c.lv:`⏱ ${ft(c.t*1000)} · vale ~${ITEMS[c.id].p} na feira · +${c.xp} XP`}</div></div>
     ${lock?"":`<button class="btn sm" data-act="plantOne" data-i="${i}" data-c="${c.id}"${P.coins<c.c?" disabled":""}>${coin(c.c,1)}</button>`}</div>`}).join("")+
-    (emptyPlots()>1?`<div class="muted" style="margin-top:10px">Dica: depois de plantar, usa “Plantar nos vazios” para encher os campos todos de uma vez.</div>`:""));
+    (emptyPlots()>1?`<div class="muted" style="margin-top:10px">Dica: usa “Plantar nos vazios”, no topo da quinta, para encher os campos todos de uma vez.</div>`:""));
   const c=CROP[p.c];
   sheet(()=>{const left=p.end-now();if(!p.c||left<=0){closeSheet();render();return""}
     return `<h3>${ic(p.c,26)} ${ITEMS[p.c].n} <button class="x" data-act="close">✕</button></h3><div class="muted">Falta <span data-tl="${p.end}">${ft(left)}</span> para colher</div>
@@ -654,6 +654,12 @@ function bldSheet(id){
     if(o.slots<MAX_SLOTS)h+=`<button class="btn grey wide" data-act="slot" data-b="${id}">Mais um lugar na fila · ${coin(slotCost(o.slots),1)}</button>`;
     return h});
 }
+function plantAllSheet(){
+  sheet(()=>{const ep=emptyPlots();if(!ep){closeSheet();return""}
+    return `<h3>🌱 Plantar nos ${ep} campos vazios <button class="x" data-act="close">✕</button></h3><div class="muted">Escolhe o que plantar. Tens ${coin(P.coins,1)}</div>`+
+    CROPS.map(c=>{const lock=c.lv>P.lv,n=Math.min(ep,Math.floor(P.coins/c.c));return `<div class="opt${lock?" lock":""}">${ic(c.id,30)}<div class="grow"><b>${ITEMS[c.id].n}</b><div class="muted">${lock?"🔒 Nível "+c.lv:`⏱ ${ft(c.t*1000)} · ${coin(c.c,1)} cada · dá ${ep*HARVEST} na colheita`}</div></div>
+    ${lock?"":`<button class="btn sm" data-act="plantAll" data-c="${c.id}"${n<1?" disabled":""}>${n<ep&&n>0?`Plantar ${n}`:`Plantar · ${coin(c.c*ep,1)}`}</button>`}</div>`}).join("")});
+}
 function settingsSheet(){
   sheet(()=>`<h3>⚙️ Definições <button class="x" data-act="close">✕</button></h3>
    <button class="btn grey wide" data-act="tSound">Efeitos: ${P.sound?"ligados":"desligados"}</button>
@@ -674,7 +680,8 @@ document.addEventListener("click",e=>{
    case"close":closeSheet();break;
    case"plot":{const p=P.plots[i];if(p.c&&p.end<=now()){harvest(i,t);after()}else plotSheet(i);break}
    case"plantOne":if(plant(i,t.dataset.c)){sPop();closeSheet();after()}break;
-   case"plantAll":plantAll(lastCrop);break;
+   case"plantAllPick":plantAllSheet();break;
+   case"plantAll":closeSheet();plantAll(t.dataset.c);break;
    case"harvestAll":harvestAll();break;
    case"speedPlot":showAd("reward",()=>{const p=P.plots[i];if(p&&p.c){p.end=now();closeSheet();harvest(i,document.querySelector(`.plot[data-i="${i}"]`));after()}});break;
    case"rega":showAd("reward",()=>{let n=0;P.plots.forEach(p=>{if(p.c&&p.end>now()){p.end=now()+(p.end-now())/2;n++}});P.regaT=now()+REGA_CD;toast(`💧 Regaste ${n} campos: crescem duas vezes mais depressa`);after()});break;
