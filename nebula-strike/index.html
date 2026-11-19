@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#070b1e">
-<meta name="description" content="Nebula Strike: arcade space shooter. Blast through waves of enemies and giant bosses.">
-<title>Nebula Strike</title>
+<meta name="description" content="Star Squadron: Nebula Strike — arcade space shooter. Blast through waves of enemies and giant bosses.">
+<title>Star Squadron: Nebula Strike</title>
 <style>
 @font-face{font-family:"Bungee";font-weight:400;font-display:swap;src:url(fonts/bungee-latin-400-normal.woff2) format("woff2")}
 @font-face{font-family:"Nunito";font-weight:700;font-display:swap;src:url(fonts/nunito-latin-700-normal.woff2) format("woff2")}
@@ -64,6 +64,7 @@ button:disabled{opacity:.45;cursor:default}
 .logo{font-family:var(--display);font-size:40px;line-height:.95;letter-spacing:1px;margin:6px 0 4px;
   background:linear-gradient(180deg,#fff 0%,var(--cyan) 55%,var(--pink) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
   filter:drop-shadow(0 0 14px rgba(62,230,255,.35))}
+.logosub{font-family:var(--display);font-size:14px;letter-spacing:4px;color:var(--cyan);margin:0 0 8px;opacity:.9}
 .tag{color:var(--muted);font-size:14px;margin:0 0 16px}
 h2{font-family:var(--display);font-weight:400;font-size:24px;margin:2px 0 10px;letter-spacing:1px}
 .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 16px}
@@ -130,7 +131,8 @@ h2{font-family:var(--display);font-weight:400;font-size:24px;margin:2px 0 10px;l
   <!-- Menu -->
   <div class="ov" id="ovMenu">
     <div class="card">
-      <div class="logo">NEBULA<br>STRIKE</div>
+      <div class="logo">STAR<br>SQUADRON</div>
+      <div class="logosub">NEBULA STRIKE</div>
       <p class="tag" data-i="tagline"></p>
       <div class="stats">
         <div class="stat"><b id="mBest">0</b><span data-i="best"></span></div>
@@ -325,156 +327,162 @@ const SHIPS = [ // [main colour, accent, bonus]
 function mk(w, h, fn){ const c = document.createElement("canvas"), s = SC*DPR; c.width = Math.ceil(w*s); c.height = Math.ceil(h*s);
   const g = c.getContext("2d"); g.scale(s, s); g.translate(w/2, h/2); fn(g); c._w = w; c._h = h; return c; }
 function glow(g, col, b){ g.shadowColor = col; g.shadowBlur = b; }
-function drawShip(g, col, acc){
-  const L = (x0,y0,x1,y1,stops) => { const gr = g.createLinearGradient(x0,y0,x1,y1); stops.forEach(([o,c]) => gr.addColorStop(o,c)); return gr; };
-  const P = pts => { g.beginPath(); g.moveTo(pts[0],pts[1]); for (let i=2;i<pts.length;i+=2) g.lineTo(pts[i],pts[i+1]); g.closePath(); };
-  const metal = L(-24,0,24,0,[[0,"#3a4256"],[.35,"#c9d2e3"],[.5,"#f4f7fc"],[.65,"#aeb8cc"],[1,"#2e3546"]]);
-  const dark = "rgba(10,14,28,.55)";
-  g.lineJoin = "round";
-  // engine glow (under the hull)
-  glow(g, col, 14); g.fillStyle = col;
-  g.beginPath(); g.ellipse(-5.5,25,3.2,4.5,0,0,Math.PI*2); g.ellipse(5.5,25,3.2,4.5,0,0,Math.PI*2); g.fill(); g.shadowBlur = 0;
-  // rear stabilisers
-  g.fillStyle = L(-14,0,14,0,[[0,"#262c3c"],[.5,"#7c879f"],[1,"#262c3c"]]);
-  P([-9,14,-15,24,-10,24,-5,18]); g.fill(); P([9,14,15,24,10,24,5,18]); g.fill();
-  // main wings (swept)
-  g.fillStyle = L(0,-6,0,20,[[0,"#9aa5bd"],[1,"#414a60"]]);
-  P([-6,-6,-23,12,-24,17,-19,18,-7,15]); g.fill(); P([6,-6,23,12,24,17,19,18,7,15]); g.fill();
-  g.strokeStyle = dark; g.lineWidth = .6;
-  P([-6,-6,-23,12,-24,17,-19,18,-7,15]); g.stroke(); P([6,-6,23,12,24,17,19,18,7,15]); g.stroke();
-  // coloured leading-edge trim
-  g.strokeStyle = col; g.lineWidth = 1.6; glow(g, col, 4);
-  g.beginPath(); g.moveTo(-6.5,-4); g.lineTo(-22,12); g.moveTo(6.5,-4); g.lineTo(22,12); g.stroke(); g.shadowBlur = 0;
-  // wing panel lines + markings
-  g.strokeStyle = dark; g.lineWidth = .5;
-  g.beginPath(); g.moveTo(-10,4); g.lineTo(-19,15); g.moveTo(10,4); g.lineTo(19,15); g.moveTo(-8,10); g.lineTo(-17,17); g.moveTo(8,10); g.lineTo(17,17); g.stroke();
-  g.fillStyle = col; g.globalAlpha = .85; P([-15,10,-12,10,-14,13,-17,13]); g.fill(); P([15,10,12,10,14,13,17,13]); g.fill(); g.globalAlpha = 1;
-  // wing-tip cannons
-  g.fillStyle = L(-26,0,-21,0,[[0,"#2a3040"],[.5,"#c6cfdf"],[1,"#2a3040"]]); g.fillRect(-25.2,4,2.6,15);
-  g.fillStyle = L(21,0,26,0,[[0,"#2a3040"],[.5,"#c6cfdf"],[1,"#2a3040"]]); g.fillRect(22.6,4,2.6,15);
-  g.fillStyle = "#1a1f2c"; g.fillRect(-24.6,2.5,1.4,2); g.fillRect(23.2,2.5,1.4,2);
-  // engine nacelles
-  g.fillStyle = L(-10,0,-1,0,[[0,"#2b3142"],[.5,"#b3bdd0"],[1,"#2b3142"]]); g.beginPath(); g.roundRect ? g.roundRect(-9.5,8,8,15,3) : g.rect(-9.5,8,8,15); g.fill();
-  g.fillStyle = L(1,0,10,0,[[0,"#2b3142"],[.5,"#b3bdd0"],[1,"#2b3142"]]); g.beginPath(); g.roundRect ? g.roundRect(1.5,8,8,15,3) : g.rect(1.5,8,8,15); g.fill();
-  // nozzles
-  g.fillStyle = "#151924"; g.fillRect(-8.5,21,6,3); g.fillRect(2.5,21,6,3);
-  g.fillStyle = acc; glow(g, col, 6); g.fillRect(-7.5,22.6,4,1.4); g.fillRect(3.5,22.6,4,1.4); g.shadowBlur = 0;
-  // fuselage
-  g.fillStyle = metal; P([0,-30,3.5,-20,6,-8,7,6,6,18,2.5,21,-2.5,21,-6,18,-7,6,-6,-8,-3.5,-20]); g.fill();
-  g.strokeStyle = "rgba(10,14,28,.6)"; g.lineWidth = .6; g.stroke();
-  // nose cone + spine stripe
-  g.fillStyle = L(0,-30,0,-18,[[0,"#1d2333"],[1,"#5a6480"]]); P([0,-30,2.6,-22,-2.6,-22]); g.fill();
-  g.fillStyle = col; g.globalAlpha = .9; P([-1.2,2,1.2,2,1.6,17,-1.6,17]); g.fill(); g.globalAlpha = 1;
-  // hull panel lines
-  g.strokeStyle = dark; g.lineWidth = .5;
-  g.beginPath(); g.moveTo(-4.5,-12); g.lineTo(-5.5,14); g.moveTo(4.5,-12); g.lineTo(5.5,14); g.moveTo(-6,0); g.lineTo(6,0); g.moveTo(-6.5,9); g.lineTo(6.5,9); g.stroke();
-  // intakes
-  g.fillStyle = "#151924"; P([-6.5,-6,-4.5,-6,-4.5,-1,-7,-1]); g.fill(); P([6.5,-6,4.5,-6,4.5,-1,7,-1]); g.fill();
-  // cockpit canopy
-  g.fillStyle = L(0,-20,0,-4,[[0,"#0b1430"],[.5,"#1f4c8f"],[1,"#0a1a3a"]]);
-  g.beginPath(); g.ellipse(0,-11,3.3,8,0,0,Math.PI*2); g.fill();
-  g.strokeStyle = "#8a94aa"; g.lineWidth = .7; g.stroke();
-  g.fillStyle = "rgba(190,235,255,.75)"; g.beginPath(); g.ellipse(-1.1,-14,1,3.6,-.15,0,Math.PI*2); g.fill();
-  g.fillStyle = acc; g.globalAlpha = .5; g.beginPath(); g.arc(1.2,-8,.8,0,Math.PI*2); g.fill(); g.globalAlpha = 1;
-  // specular highlight along the top of the hull
-  g.fillStyle = "rgba(255,255,255,.35)"; P([-.6,-21,.6,-21,.9,-4,-.9,-4]); g.fill();
-}
-
-/* ---------- enemy art (hostile gunmetal hulls, nose pointing down) ---------- */
+/* ---------- shared art helpers ---------- */
 function LG(g,x0,y0,x1,y1,st){ const gr = g.createLinearGradient(x0,y0,x1,y1); st.forEach(([o,c]) => gr.addColorStop(o,c)); return gr; }
 function PL(g,pts){ g.beginPath(); g.moveTo(pts[0],pts[1]); for (let i=2;i<pts.length;i+=2) g.lineTo(pts[i],pts[i+1]); g.closePath(); }
 function MIR(pts){ const r = []; for (let i=0;i<pts.length;i+=2) r.push(-pts[i], pts[i+1]); return r; }
-const GUN = (w) => [[0,"#1b1f2b"],[.35,"#5d6579"],[.5,"#8d96ab"],[.65,"#4f576b"],[1,"#171a24"]];
-function hullFill(g, w){ return LG(g,-w,0,w,0,GUN()); }
+function RNG(seed){ let s = seed; return () => (s = (s*16807) % 2147483647) / 2147483647; }
+/* weathering: soot, scuffs and scratches, clipped to a hull outline */
+function grime(g, pts, seed, n, x0, y0, x1, y1){ const r = RNG(seed); g.save(); PL(g, pts); g.clip();
+  for (let i=0;i<n;i++){ const x = x0 + r()*(x1-x0), y = y0 + r()*(y1-y0), w = .5 + r()*2.2, h = .3 + r()*1;
+    g.fillStyle = r() < .72 ? `rgba(8,6,4,${.06 + r()*.14})` : `rgba(255,255,255,${.04 + r()*.07})`; g.fillRect(x, y, w, h); }
+  g.strokeStyle = "rgba(255,255,255,.14)"; g.lineWidth = .3;
+  for (let i=0;i<n/6;i++){ const x = x0 + r()*(x1-x0), y = y0 + r()*(y1-y0); g.beginPath(); g.moveTo(x, y); g.lineTo(x + (r()-.5)*6, y + (r()-.5)*3); g.stroke(); }
+  const sg = LG(g, 0, y0, 0, y1, [[0,"rgba(0,0,0,0)"],[.75,"rgba(0,0,0,0)"],[1,"rgba(20,12,6,.35)"]]); g.fillStyle = sg; g.fillRect(x0, y0, x1-x0, y1-y0);
+  g.restore(); }
+function greeble(g, seed, n, x0, y0, x1, y1, dark){ const r = RNG(seed);
+  for (let i=0;i<n;i++){ const x = x0 + r()*(x1-x0), y = y0 + r()*(y1-y0), w = .8 + r()*2.4, h = .8 + r()*2.4;
+    g.fillStyle = dark || (r() < .5 ? "rgba(10,12,18,.55)" : "rgba(200,206,220,.35)"); g.fillRect(x, y, w, h); } }
+function seams(g, lines, a){ g.strokeStyle = `rgba(5,7,12,${a||.7})`; g.lineWidth = .45; g.beginPath(); lines.forEach(l => { g.moveTo(l[0],l[1]); g.lineTo(l[2],l[3]); }); g.stroke(); }
+function lamp(g, x, y, r, col){ glow(g, col, r*3); g.fillStyle = col; g.beginPath(); g.arc(x, y, r, 0, Math.PI*2); g.fill(); g.shadowBlur = 0; g.fillStyle = "rgba(255,255,255,.85)"; g.beginPath(); g.arc(x, y, r*.4, 0, Math.PI*2); g.fill(); }
 function core(g, x, y, r, col){ glow(g, col, r*2.2); const gr = g.createRadialGradient(x,y,0,x,y,r); gr.addColorStop(0,"#fff"); gr.addColorStop(.35,col); gr.addColorStop(1,"rgba(0,0,0,.2)");
   g.fillStyle = gr; g.beginPath(); g.arc(x,y,r,0,Math.PI*2); g.fill(); g.shadowBlur = 0; }
-function seams(g, lines){ g.strokeStyle = "rgba(5,7,14,.7)"; g.lineWidth = .5; g.beginPath(); lines.forEach(l => { g.moveTo(l[0],l[1]); g.lineTo(l[2],l[3]); }); g.stroke(); }
-function trim(g, col, lines, w){ g.strokeStyle = col; g.lineWidth = w||1.2; glow(g, col, 4); g.beginPath(); lines.forEach(l => { g.moveTo(l[0],l[1]); g.lineTo(l[2],l[3]); }); g.stroke(); g.shadowBlur = 0; }
-function thrust(g, col, xs, y){ glow(g, col, 8); g.fillStyle = col; xs.forEach(x => { g.beginPath(); g.ellipse(x, y, 2.2, 3.2, 0, 0, Math.PI*2); g.fill(); }); g.shadowBlur = 0; }
-function enemyDrone(g, col){
-  thrust(g, col, [-4,4], -15);
-  const wing = [-3,-8,-17,-12,-19,-6,-11,4,-4,6]; g.fillStyle = LG(g,0,-12,0,6,[[0,"#3a4152"],[1,"#20242f"]]);
-  PL(g, wing); g.fill(); PL(g, MIR(wing)); g.fill();
-  trim(g, col, [[-4,-9,-17,-12],[4,-9,17,-12]]);
-  g.fillStyle = hullFill(g, 6); PL(g, [0,16,5,4,6,-8,3,-14,-3,-14,-6,-8,-5,4]); g.fill(); g.strokeStyle = "rgba(5,7,14,.7)"; g.lineWidth = .6; g.stroke();
-  seams(g, [[-5,-2,5,-2],[-12,-6,-8,2],[12,-6,8,2]]);
-  g.fillStyle = "#11141c"; g.fillRect(-18.5,-6,2,7); g.fillRect(16.5,-6,2,7);
-  core(g, 0, 4, 3.2, col);
+const HULL = (w) => [[0,"#5c5f66"],[.3,"#b9bbbf"],[.5,"#d9d6cf"],[.7,"#a7a8ab"],[1,"#4d5057"]];      // worn off-white (player)
+const DARK = () => [[0,"#121418"],[.32,"#3c414c"],[.5,"#5a606d"],[.68,"#373b45"],[1,"#101216"]];      // dark slate (enemy fleet)
+
+/* ---------- player starfighter: wedge body, forward-swept wings, root cannons, twin integrated engines ---------- */
+function drawShip(g, col, acc){
+  g.lineJoin = "round";
+  const fus = [0,-27, 4,-19, 7.5,-5, 9,10, 7,23, -7,23, -9,10, -7.5,-5, -4,-19];
+  const wing = [-8,-1, -20,-13, -24.5,-12, -23,0, -19,7, -8.5,15];
+  const can = [-4.2,-17, -10.5,-15.5, -10.5,-12.5, -5.5,-12];
+  // engine glow
+  glow(g, col, 16); g.fillStyle = col; [-4.2,4.2].forEach(x => { g.beginPath(); g.ellipse(x, 25.2, 3, 2, 0, 0, Math.PI*2); g.fill(); }); g.shadowBlur = 0;
+  // wings
+  g.fillStyle = LG(g,0,-13,0,15,[[0,"#cfccc3"],[1,"#66676b"]]); PL(g, wing); g.fill(); PL(g, MIR(wing)); g.fill();
+  g.strokeStyle = "rgba(10,10,12,.6)"; g.lineWidth = .55; PL(g,wing); g.stroke(); PL(g,MIR(wing)); g.stroke();
+  grime(g, wing, 11, 26, -25, -13, -8, 15); grime(g, MIR(wing), 12, 26, 8, -13, 25, 15);
+  seams(g, [[-12,-4,-15,8],[-16,-8,-19,5],[12,-4,15,8],[16,-8,19,5],[-21,-5,-9,3],[21,-5,9,3]]);
+  // coloured chevrons on the wings
+  g.fillStyle = col; g.globalAlpha = .9;
+  PL(g,[-19.5,-11.6,-23.6,-11.2,-22.5,-6,-18.5,-7.2]); g.fill(); PL(g,MIR([-19.5,-11.6,-23.6,-11.2,-22.5,-6,-18.5,-7.2])); g.fill(); g.globalAlpha = 1;
+  // wing-root laser cannons
+  [-10.5,10.5].forEach(x => { g.fillStyle = LG(g,x-1.8,0,x+1.8,0,[[0,"#2b2c30"],[.5,"#a2a3a6"],[1,"#2b2c30"]]); g.fillRect(x-1.6,-19,3.2,18);
+    g.fillStyle = "#18191c"; g.fillRect(x-2.4,-6,4.8,5); g.fillStyle = "#101114"; g.fillRect(x-.8,-21,1.6,2.4); });
+  // canards
+  g.fillStyle = "#8d8c88"; PL(g,can); g.fill(); PL(g,MIR(can)); g.fill();
+  // fuselage
+  g.fillStyle = LG(g,-9,0,9,0,HULL()); PL(g, fus); g.fill(); g.strokeStyle = "rgba(10,10,12,.65)"; g.lineWidth = .55; g.stroke();
+  grime(g, fus, 21, 26, -9, -27, 9, 23);
+  seams(g, [[-6,-8,6,-8],[-8.5,6,8.5,6],[-8,15,8,15],[0,-2,0,23],[-7.5,-5,-3,23],[7.5,-5,3,23]]);
+  greeble(g, 41, 10, -7, 0, 6, 20);
+  // engine block
+  [-4.2,4.2].forEach(x => { g.fillStyle = "#2a2b30"; g.fillRect(x-3.4,20.5,6.8,3.6); g.fillStyle = "#0d0e10"; g.beginPath(); g.ellipse(x,24,2.8,1.6,0,0,Math.PI*2); g.fill();
+    g.fillStyle = acc; glow(g,col,6); g.beginPath(); g.ellipse(x,24.2,1.8,.8,0,0,Math.PI*2); g.fill(); g.shadowBlur = 0; });
+  // dorsal colour panel + nose
+  g.fillStyle = col; g.globalAlpha = .85; PL(g,[0,-2, 3.6,4, 0,12, -3.6,4]); g.fill(); g.globalAlpha = 1;
+  g.fillStyle = "#2a2b2f"; PL(g,[0,-27, 2,-23, -2,-23]); g.fill();
+  // bubble canopy
+  g.fillStyle = LG(g,0,-20,0,-6,[[0,"#0a0f1d"],[.55,"#24405f"],[1,"#0b1220"]]); g.beginPath(); g.ellipse(0,-13,3.4,6.6,0,0,Math.PI*2); g.fill();
+  g.strokeStyle = "#7b7a74"; g.lineWidth = .7; g.stroke(); seams(g, [[-3.2,-11,3.2,-11]], .9);
+  g.fillStyle = "rgba(200,230,255,.6)"; g.beginPath(); g.ellipse(-1.1,-15.5,.9,2.8,-.2,0,Math.PI*2); g.fill();
+  lamp(g, -23.6, -10.5, .7, "#ff5a5a"); lamp(g, 23.6, -10.5, .7, "#43e08a");
 }
-function enemyZig(g, col){
-  thrust(g, col, [0], -16);
-  g.fillStyle = LG(g,-15,0,15,0,[[0,"#1b1f2b"],[.5,"#4c5468"],[1,"#1b1f2b"]]);
-  PL(g, [0,17,15,0,0,-15,-15,0]); g.fill();
-  g.fillStyle = hullFill(g, 8); PL(g, [0,12,8,0,0,-11,-8,0]); g.fill(); g.strokeStyle = "rgba(5,7,14,.7)"; g.lineWidth = .6; g.stroke();
-  trim(g, col, [[-15,0,0,17],[15,0,0,17]], 1.1);
-  seams(g, [[-8,0,8,0],[0,-11,0,-4]]);
-  g.fillStyle = "#11141c"; PL(g,[-13,-2,-17,-4,-17,4,-13,2]); g.fill(); PL(g,[13,-2,17,-4,17,4,13,2]); g.fill();
-  core(g, 0, 3, 3, col);
+
+/* ---------- enemy fleet: dark slate hulls, red/coloured running lights, nose pointing down ---------- */
+function thrust(g, col, xs, y, w){ glow(g, col, 9); g.fillStyle = col; xs.forEach(x => { g.beginPath(); g.ellipse(x, y, w||2.4, 1.8, 0, 0, Math.PI*2); g.fill(); }); g.shadowBlur = 0; }
+function enemyDrone(g, col){ // arrowhead interceptor with split forward prongs
+  thrust(g, col, [-3.5,3.5], -14.5);
+  const body = [0,6, 5,15, 8,15, 13,-2, 9,-12, 4,-14, -4,-14, -9,-12, -13,-2, -8,15, -5,15];
+  g.fillStyle = LG(g,-13,0,13,0,DARK()); PL(g, body); g.fill(); g.strokeStyle = "rgba(0,0,0,.8)"; g.lineWidth = .6; g.stroke();
+  grime(g, body, 51, 45, -13, -14, 13, 15);
+  seams(g, [[-9,-6,9,-6],[0,-14,0,6],[-6,2,-11,-4],[6,2,11,-4]]); greeble(g, 52, 8, -7, -12, 6, -2);
+  g.fillStyle = "#0b0c0f"; PL(g,[-6.5,14,-5.5,18,-4.5,14]); g.fill(); PL(g,[6.5,14,5.5,18,4.5,14]); g.fill();     // prong guns
+  g.fillStyle = "#14161b"; PL(g,[-3,-4,3,-4,2.4,3,-2.4,3]); g.fill();
+  lamp(g, 0, -.5, 1.6, col); lamp(g, -11.5, -2, .7, col); lamp(g, 11.5, -2, .7, col);
 }
-function enemyKami(g, col){
-  thrust(g, col, [0], -17);
-  const fin = [-2,-10,-12,-16,-9,-4,-3,6]; g.fillStyle = LG(g,0,-16,0,6,[[0,"#3a4152"],[1,"#1d2029"]]);
-  PL(g, fin); g.fill(); PL(g, MIR(fin)); g.fill();
-  trim(g, col, [[-3,-10,-12,-16],[3,-10,12,-16]]);
-  g.fillStyle = hullFill(g, 4); PL(g, [0,19,4,6,4,-12,0,-15,-4,-12,-4,6]); g.fill(); g.strokeStyle = "rgba(5,7,14,.7)"; g.lineWidth = .6; g.stroke();
-  g.fillStyle = LG(g,0,8,0,19,[[0,col],[1,"#ffffff"]]); glow(g, col, 6); PL(g, [0,19,2.6,10,-2.6,10]); g.fill(); g.shadowBlur = 0;
-  seams(g, [[-4,0,4,0],[-4,-7,4,-7]]);
+function enemyZig(g, col){ // crescent skirmisher
+  thrust(g, col, [0], -12, 3);
+  const cres = [0,-10, 9,-9, 16,-3, 17,6, 12,1, 6,0, 3,8, 0,12, -3,8, -6,0, -12,1, -17,6, -16,-3, -9,-9];
+  g.fillStyle = LG(g,-17,0,17,0,DARK()); PL(g, cres); g.fill(); g.strokeStyle = "rgba(0,0,0,.8)"; g.lineWidth = .6; g.stroke();
+  grime(g, cres, 61, 45, -17, -10, 17, 12);
+  seams(g, [[-12,-5,-5,0],[12,-5,5,0],[-4,-9,-4,0],[4,-9,4,0]]); greeble(g, 62, 7, -10, -8, 9, -3);
+  g.fillStyle = col; g.globalAlpha = .8; g.fillRect(-15,-1,3,1); g.fillRect(12,-1,3,1); g.globalAlpha = 1;
+  lamp(g, 0, 3, 1.5, col);
 }
-function enemyShooter(g, col){
-  thrust(g, col, [-7,7], -19);
-  const w = [-6,-12,-24,-6,-25,6,-18,10,-9,8]; g.fillStyle = LG(g,0,-12,0,10,[[0,"#3b4253"],[1,"#1c2029"]]);
-  PL(g, w); g.fill(); PL(g, MIR(w)); g.fill();
-  g.strokeStyle = "rgba(5,7,14,.7)"; g.lineWidth = .6; PL(g,w); g.stroke(); PL(g,MIR(w)); g.stroke();
-  trim(g, col, [[-7,-12,-24,-6],[7,-12,24,-6]]);
-  // twin cannons
-  [-17,17].forEach(x => { g.fillStyle = LG(g,x-2.5,0,x+2.5,0,[[0,"#151821"],[.5,"#8c95aa"],[1,"#151821"]]); g.fillRect(x-2.2,0,4.4,16); g.fillStyle = col; glow(g,col,5); g.fillRect(x-1.4,15,2.8,2); g.shadowBlur = 0; });
-  g.fillStyle = hullFill(g, 9); PL(g, [0,18,8,10,10,-6,7,-17,-7,-17,-10,-6,-8,10]); g.fill(); g.strokeStyle = "rgba(5,7,14,.7)"; g.stroke();
-  seams(g, [[-9,-4,9,-4],[-8,6,8,6],[-15,-6,-12,6],[15,-6,12,6]]);
-  g.fillStyle = "#0b0d14"; g.beginPath(); g.ellipse(0,4,4.5,6.5,0,0,Math.PI*2); g.fill();
-  core(g, 0, 5, 3.6, col);
+function enemyKami(g, col){ // narrow spike with ram tip
+  thrust(g, col, [0], -16, 2.6);
+  const sp = [0,19, 3,7, 5,-6, 9,-12, 3,-11, 0,-15, -3,-11, -9,-12, -5,-6, -3,7];
+  g.fillStyle = LG(g,-9,0,9,0,DARK()); PL(g, sp); g.fill(); g.strokeStyle = "rgba(0,0,0,.8)"; g.lineWidth = .6; g.stroke();
+  grime(g, sp, 71, 30, -9, -15, 9, 19); seams(g, [[-4,-2,4,-2],[-3,6,3,6]]);
+  g.fillStyle = LG(g,0,8,0,19,[[0,col],[1,"#ffffff"]]); glow(g, col, 6); PL(g,[0,19,2.2,10,-2.2,10]); g.fill(); g.shadowBlur = 0;
+  lamp(g, 0, -6, 1.1, col);
 }
-function enemyTank(g, col){
-  thrust(g, col, [-12,0,12], -27);
-  const arm = [-14,-20,-32,-10,-33,10,-24,22,-12,20]; g.fillStyle = LG(g,0,-20,0,22,[[0,"#454c5e"],[1,"#1b1e27"]]);
-  PL(g, arm); g.fill(); PL(g, MIR(arm)); g.fill();
-  g.strokeStyle = "rgba(5,7,14,.75)"; g.lineWidth = .7; PL(g,arm); g.stroke(); PL(g,MIR(arm)); g.stroke();
-  trim(g, col, [[-15,-20,-32,-10],[15,-20,32,-10]], 1.4);
+function enemyShooter(g, col){ // boxy gunship with two hanging cannon pods
+  thrust(g, col, [-6,6], -19);
+  const hull = [-8,-18, 8,-18, 11,-6, 10,10, 5,17, -5,17, -10,10, -11,-6];
+  const pylon = [-10,-6, -21,-4, -21,4, -10,6];
+  g.fillStyle = LG(g,0,-6,0,6,[[0,"#3a3e48"],[1,"#15171c"]]); PL(g,pylon); g.fill(); PL(g,MIR(pylon)); g.fill();
+  [-21,21].forEach((x,k) => { g.fillStyle = LG(g,x-3.4,0,x+3.4,0,DARK()); g.fillRect(x-3.2,-9,6.4,20); g.strokeStyle = "rgba(0,0,0,.8)"; g.lineWidth = .5; g.strokeRect(x-3.2,-9,6.4,20);
+    greeble(g, 80+k, 6, x-2.6, -7, x+1.6, 8); g.fillStyle = "#0b0c0f"; g.fillRect(x-1.2,11,2.4,5); lamp(g, x, 16, .9, col); });
+  g.fillStyle = LG(g,-11,0,11,0,DARK()); PL(g, hull); g.fill(); g.strokeStyle = "rgba(0,0,0,.8)"; g.lineWidth = .6; g.stroke();
+  grime(g, hull, 81, 60, -11, -18, 11, 17);
+  seams(g, [[-10,-8,10,-8],[-10,3,10,3],[-4,-18,-4,-8],[4,-18,4,-8]]); greeble(g, 82, 12, -8, -16, 7, 1);
+  g.fillStyle = "#0b0c0f"; PL(g,[-5,6,5,6,4,14,-4,14]); g.fill();       // viewport slit
+  g.fillStyle = col; glow(g,col,5); g.fillRect(-3.4,9,6.8,1.3); g.shadowBlur = 0;
+}
+function enemyTank(g, col){ // heavy armoured hauler with three turrets
+  thrust(g, col, [-14,-5,5,14], -30, 2.6);
+  const hull = [-22,-28, 22,-28, 30,-14, 30,14, 22,26, -22,26, -30,14, -30,-14];
+  g.fillStyle = LG(g,-30,0,30,0,DARK()); PL(g, hull); g.fill(); g.strokeStyle = "rgba(0,0,0,.85)"; g.lineWidth = .8; g.stroke();
+  grime(g, hull, 91, 60, -30, -28, 30, 26);
   // armour plates
-  g.fillStyle = hullFill(g, 18); PL(g, [-16,-24,16,-24,19,8,10,26,-10,26,-19,8]); g.fill(); g.strokeStyle = "rgba(5,7,14,.75)"; g.stroke();
-  seams(g, [[-16,-12,16,-12],[-18,0,18,0],[-12,14,12,14],[-26,-6,-22,16],[26,-6,22,16],[-8,-24,-8,-12],[8,-24,8,-12]]);
-  // rivets
-  g.fillStyle = "rgba(220,228,240,.5)"; [[-13,-18],[13,-18],[-15,4],[15,4],[-8,20],[8,20]].forEach(([x,y]) => { g.beginPath(); g.arc(x,y,.9,0,6.283); g.fill(); });
-  // triple cannons
-  [-22,0,22].forEach(x => { g.fillStyle = LG(g,x-3,0,x+3,0,[[0,"#151821"],[.5,"#9aa3b8"],[1,"#151821"]]); g.fillRect(x-2.6, x?10:16, 5.2, x?16:16); g.fillStyle = "#0b0d14"; g.fillRect(x-1.6, x?24:30, 3.2, 3); });
-  g.fillStyle = "#0b0d14"; g.beginPath(); g.arc(0,-4,8,0,6.283); g.fill();
-  core(g, 0, -4, 6, col);
+  [[-26,-22,16,14],[10,-22,16,14],[-26,-4,14,16],[12,-4,14,16],[-10,-22,20,10]].forEach(([x,y,w,h],k) => {
+    g.fillStyle = k%2 ? "rgba(255,255,255,.05)" : "rgba(0,0,0,.18)"; g.fillRect(x,y,w,h); g.strokeStyle = "rgba(0,0,0,.6)"; g.lineWidth = .5; g.strokeRect(x,y,w,h); });
+  greeble(g, 92, 16, -28, -26, 26, 22);
+  g.fillStyle = "rgba(220,226,236,.45)"; [[-27,-25],[27,-25],[-27,22],[27,22],[-12,12],[12,12]].forEach(([x,y]) => { g.beginPath(); g.arc(x,y,.9,0,6.283); g.fill(); });
+  // turrets
+  [[-17,8],[17,8],[0,4]].forEach(([x,y],k) => { g.fillStyle = LG(g,x-6,0,x+6,0,DARK()); g.beginPath(); g.arc(x,y,6,0,6.283); g.fill(); g.strokeStyle = "rgba(0,0,0,.8)"; g.stroke();
+    g.fillStyle = "#1b1d22"; g.fillRect(x-1.4, y, 2.8, k===2 ? 22 : 16); g.fillStyle = "#08090b"; g.fillRect(x-1, y + (k===2 ? 20 : 14), 2, 2.5); lamp(g, x, y, 1.2, col); });
+  g.fillStyle = col; g.globalAlpha = .7; g.fillRect(-22,-27,44,1.4); g.globalAlpha = 1;
 }
-function enemyBoss(g, col){
-  thrust(g, col, [-46,-16,16,46], -46);
-  const wing = [-24,-40,-58,-42,-84,-18,-86,8,-74,30,-46,26,-26,34]; g.fillStyle = LG(g,0,-42,0,34,[[0,"#4a2240"],[.5,"#2a1428"],[1,"#140a16"]]);
-  PL(g, wing); g.fill(); PL(g, MIR(wing)); g.fill();
-  g.strokeStyle = "rgba(5,3,10,.8)"; g.lineWidth = .8; PL(g,wing); g.stroke(); PL(g,MIR(wing)); g.stroke();
-  trim(g, col, [[-24,-40,-58,-42],[-58,-42,-84,-18],[24,-40,58,-42],[58,-42,84,-18]], 1.8);
-  seams(g, [[-34,-30,-70,-14],[34,-30,70,-14],[-40,-10,-80,4],[40,-10,80,4],[-52,6,-60,26],[52,6,60,26],[-30,10,-34,30],[30,10,34,30]]);
-  // wing pods (gun turrets)
-  [-62,-40,40,62].forEach(x => { g.fillStyle = LG(g,x-5,0,x+5,0,[[0,"#151018"],[.5,"#9c8fa8"],[1,"#151018"]]); g.fillRect(x-4,14,8,22); g.fillStyle = "#08050b"; g.fillRect(x-2.5,34,5,4);
-    g.fillStyle = col; glow(g,col,6); g.fillRect(x-1.5,35,3,2); g.shadowBlur = 0; });
-  // central hull
-  g.fillStyle = LG(g,-34,0,34,0,[[0,"#1b0f1c"],[.3,"#6a5a72"],[.5,"#a99cb4"],[.7,"#5c4d64"],[1,"#170c18"]]);
-  PL(g, [0,58,22,40,34,10,30,-30,14,-48,-14,-48,-30,-30,-34,10,-22,40]); g.fill(); g.strokeStyle = "rgba(5,3,10,.8)"; g.lineWidth = .9; g.stroke();
-  seams(g, [[-30,-20,30,-20],[-33,0,33,0],[-26,24,26,24],[-14,-48,-10,-20],[14,-48,10,-20],[-20,40,20,40]]);
-  g.fillStyle = "rgba(255,255,255,.18)"; PL(g,[-2,-46,2,-46,3,-22,-3,-22]); g.fill();
-  // armour ring + reactor eye
-  g.fillStyle = "#0a060c"; g.beginPath(); g.arc(0,6,17,0,6.283); g.fill();
-  g.strokeStyle = LG(g,-17,0,17,0,[[0,"#3a2a40"],[.5,"#c9bcd4"],[1,"#3a2a40"]]); g.lineWidth = 3; g.beginPath(); g.arc(0,6,16,0,6.283); g.stroke();
-  core(g, 0, 6, 11, "#ffcf3e"); core(g, 0, 6, 5, col);
-  // main cannon
-  g.fillStyle = LG(g,-5,0,5,0,[[0,"#151018"],[.5,"#b8acc4"],[1,"#151018"]]); g.fillRect(-4.5,40,9,16); g.fillStyle = "#08050b"; g.fillRect(-3,54,6,4);
+function enemyBoss(g, col){ // hammerhead cruiser: engine block on top, long spine, wide battery bar at the front
+  thrust(g, col, [-30,-15,0,15,30], -60, 4);
+  const eng = [-38,-58, 38,-58, 42,-44, -42,-44];
+  const spine = [-14,-46, 14,-46, 18,10, 12,30, -12,30, -18,10];
+  const ham = [-86,22, -80,14, -20,10, 20,10, 80,14, 86,22, 84,40, 60,46, 20,44, 0,54, -20,44, -60,46, -84,40];
+  const fin = [-18,-30, -44,-20, -48,-6, -18,2];
+  g.fillStyle = LG(g,0,-30,0,2,[[0,"#3a3f4a"],[1,"#14161b"]]); PL(g,fin); g.fill(); PL(g,MIR(fin)); g.fill();
+  g.strokeStyle = "rgba(0,0,0,.8)"; g.lineWidth = .7; PL(g,fin); g.stroke(); PL(g,MIR(fin)); g.stroke();
+  grime(g, fin, 101, 50, -48, -30, -18, 2); grime(g, MIR(fin), 102, 50, 18, -30, 48, 2);
+  g.fillStyle = LG(g,-42,0,42,0,DARK()); PL(g,eng); g.fill(); g.strokeStyle = "rgba(0,0,0,.85)"; g.lineWidth = .8; g.stroke();
+  grime(g, eng, 103, 60, -42, -58, 42, -44); greeble(g, 104, 12, -38, -56, 36, -46);
+  [-30,-15,0,15,30].forEach(x => { g.fillStyle = "#0b0c0f"; g.fillRect(x-5,-61,10,4); });
+  g.fillStyle = LG(g,-18,0,18,0,DARK()); PL(g,spine); g.fill(); g.strokeStyle = "rgba(0,0,0,.85)"; g.stroke();
+  grime(g, spine, 105, 40, -18, -46, 18, 30); greeble(g, 106, 16, -14, -44, 12, 26);
+  seams(g, [[-15,-30,15,-30],[-16,-14,16,-14],[-17,2,17,2],[0,-46,0,30]]);
+  g.fillStyle = LG(g,-86,0,86,0,DARK()); PL(g,ham); g.fill(); g.strokeStyle = "rgba(0,0,0,.85)"; g.lineWidth = .9; g.stroke();
+  grime(g, ham, 107, 90, -86, 10, 86, 54); greeble(g, 108, 26, -82, 15, 80, 40);
+  seams(g, [[-80,28,80,28],[-60,14,-60,46],[-40,12,-40,45],[40,12,40,45],[60,14,60,46],[-20,10,-20,44],[20,10,20,44]]);
+  g.fillStyle = col; g.globalAlpha = .75; g.fillRect(-80,31,160,1.5); g.globalAlpha = 1;
+  // command tower
+  g.fillStyle = LG(g,-9,0,9,0,DARK()); g.fillRect(-9,-26,18,14); g.strokeStyle = "rgba(0,0,0,.85)"; g.strokeRect(-9,-26,18,14);
+  g.fillStyle = "#0a0b0e"; g.fillRect(-7,-21,14,2.4); g.fillStyle = col; glow(g,col,5); g.fillRect(-6,-20.4,12,1.1); g.shadowBlur = 0;
+  // reactor
+  g.fillStyle = "#0a0b0e"; g.beginPath(); g.arc(0,20,11,0,6.283); g.fill();
+  g.strokeStyle = LG(g,-11,0,11,0,[[0,"#2a2d34"],[.5,"#9aa0ad"],[1,"#2a2d34"]]); g.lineWidth = 2.4; g.beginPath(); g.arc(0,20,10,0,6.283); g.stroke();
+  core(g, 0, 20, 7, "#ffcf3e"); core(g, 0, 20, 3.2, col);
+  // battery turrets along the hammer
+  [-62,-40,40,62].forEach((x,k) => { g.fillStyle = LG(g,x-6,0,x+6,0,DARK()); g.beginPath(); g.arc(x,32,6.5,0,6.283); g.fill(); g.strokeStyle = "rgba(0,0,0,.85)"; g.stroke();
+    g.fillStyle = "#1b1d22"; g.fillRect(x-3.6,32,2.2,16); g.fillRect(x+1.4,32,2.2,16); g.fillStyle = "#08090b"; g.fillRect(x-3.6,46,2.2,2.5); g.fillRect(x+1.4,46,2.2,2.5); lamp(g, x, 32, 1.3, col); });
+  [-82,82].forEach(x => lamp(g, x, 24, 1.2, "#ff3b3b"));
 }
 function buildSprites(){
   SHIPS.forEach((s,i) => SPR["ship"+i] = mk(60, 66, g => drawShip(g, s.c, s.a)));
-  SPR.bullet = mk(10, 26, g => { glow(g,"#3ee6ff",8); g.fillStyle = "#bff8ff"; g.fillRect(-2.2,-9,4.4,18); });
-  SPR.ebullet = mk(18, 18, g => { glow(g,"#ff4fa3",8); g.fillStyle = "#ff8cc4"; g.beginPath(); g.arc(0,0,4.5,0,Math.PI*2); g.fill(); g.fillStyle="#fff"; g.beginPath(); g.arc(0,0,2,0,Math.PI*2); g.fill(); });
+  SHIPS.forEach((sh,i) => SPR["bolt"+i] = mk(12, 40, g => { glow(g, sh.c, 9); g.fillStyle = sh.c; g.beginPath(); g.roundRect ? g.roundRect(-2.4,-15,4.8,30,2.4) : g.rect(-2.4,-15,4.8,30); g.fill();
+    g.shadowBlur = 0; g.fillStyle = "rgba(255,255,255,.95)"; g.fillRect(-.9,-13,1.8,26); }));
+  SPR.ebullet = mk(12, 30, g => { glow(g,"#ff2a2a",9); g.fillStyle = "#ff3b3b"; g.beginPath(); g.roundRect ? g.roundRect(-2.2,-10,4.4,20,2.2) : g.rect(-2.2,-10,4.4,20); g.fill();
+    g.shadowBlur = 0; g.fillStyle = "rgba(255,235,235,.95)"; g.fillRect(-.8,-8.5,1.6,17); });
   SPR.drone = mk(44, 44, g => enemyDrone(g, "#ff4d4d"));
   SPR.zig = mk(44, 44, g => enemyZig(g, "#ffa53e"));
   SPR.kami = mk(40, 44, g => enemyKami(g, "#43e08a"));
@@ -491,7 +499,7 @@ function buildSprites(){
   SPR.flare = mk(64, 64, g => { const r = g.createRadialGradient(0,0,0,0,0,32); r.addColorStop(0,"rgba(255,255,255,1)"); r.addColorStop(.25,"rgba(255,220,150,.8)"); r.addColorStop(1,"rgba(255,80,40,0)"); g.fillStyle = r; g.fillRect(-32,-32,64,64); });
 }
 function flames(x, y){ const f = 1 + Math.sin(performance.now()*.05)*.12 + Math.random()*.1; cx.globalCompositeOperation = "lighter";
-  for (const ex of [-5.5,5.5]){ const sp = SPR["flame"+prof.ship], h = sp._h*f; cx.drawImage(sp, x+ex-sp._w/2, y+24, sp._w, h); }
+  for (const ex of [-4.2,4.2]){ const sp = SPR["flame"+prof.ship], h = sp._h*f; cx.drawImage(sp, x+ex-sp._w*.6, y+24, sp._w*1.2, h); }
   cx.globalCompositeOperation = "source-over"; }
 function spr(s, x, y, rot, a, scale){ const w = s._w*(scale||1), h = s._h*(scale||1);
   if (a !== undefined) cx.globalAlpha = a;
@@ -587,12 +595,12 @@ function spawnBoss(){
 /* ---------- player shooting ---------- */
 function fireGuns(){
   const g = pl.gun, d = pl.st.dmg, x = pl.x, y = pl.y - 28;
-  const B = (dx, ang, dm) => bullets.push({x: x+dx, y, vx: Math.sin(ang)*720, vy: -Math.cos(ang)*720, d: dm||d, r: 5});
+  const B = (dx, ang, dm) => bullets.push({x: x+dx, y: y + (Math.abs(dx) > 20 ? 14 : Math.abs(dx) > 5 ? 6 : 0), vx: Math.sin(ang)*720, vy: -Math.cos(ang)*720, d: dm||d, r: 5});
   if (g === 1) B(0, 0);
-  else if (g === 2){ B(-6,0); B(6,0); }
-  else if (g === 3){ B(0,0); B(-8,-.12); B(8,.12); }
-  else if (g === 4){ B(-5,0); B(5,0); B(-10,-.2); B(10,.2); }
-  else { B(0,0); B(-8,-.08); B(8,.08); B(-24,-.1); B(24,.1); }
+  else if (g === 2){ B(-10.5,0); B(10.5,0); }                       // wing-root cannons
+  else if (g === 3){ B(0,0); B(-10.5,-.05); B(10.5,.05); }
+  else if (g === 4){ B(-10.5,0); B(10.5,0); B(-22,-.12); B(22,.12); }
+  else { B(0,0); B(-10.5,-.04); B(10.5,.04); B(-22,-.14); B(22,.14); }
   shotSnd();
 }
 
@@ -746,9 +754,9 @@ function draw(){
   }
   // bullets
   cx.globalCompositeOperation = "lighter";
-  for (const b of bullets) spr(SPR.bullet, b.x, b.y, Math.atan2(b.vx, -b.vy));
+  { const bs = SPR["bolt"+prof.ship]; for (const b of bullets) spr(bs, b.x, b.y, b.vx ? Math.atan2(b.vx, -b.vy) : 0); }
   cx.globalCompositeOperation = "source-over";
-  for (const b of ebullets) spr(SPR.ebullet, b.x, b.y);
+  for (const b of ebullets) spr(SPR.ebullet, b.x, b.y, Math.atan2(-b.vx, b.vy));
   // player
   if (pl && state !== "menu" && (state !== "play" || pl.inv <= 0 || Math.floor(pl.inv*12)%2 === 0) && pl.hp > 0){
     if (state === "play") flames(pl.x, pl.y); spr(SPR["ship"+prof.ship], pl.x, pl.y);
