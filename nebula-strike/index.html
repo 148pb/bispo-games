@@ -51,6 +51,7 @@ button:disabled{opacity:.45;cursor:default}
   color:#ffcf3e;font:800 13px/20px var(--body);text-align:center;padding:0 4px}
 .bombbtn.empty{filter:grayscale(1) brightness(.6);opacity:.55}
 .bombbtn:active{transform:scale(.92)}
+.bombbtn.moving{transform:scale(1.18);opacity:1;border-color:#ffcf3e;box-shadow:0 0 30px rgba(255,207,62,.8),inset 0 -6px 10px rgba(0,0,0,.35);transition:none}
 .combo{position:absolute;left:0;right:0;top:calc(env(safe-area-inset-top,0px) + 70px);text-align:center;font-family:var(--display);
   font-size:18px;color:var(--gold);text-shadow:0 0 10px rgba(255,207,62,.7);pointer-events:none;opacity:0;transition:opacity .2s}
 .combo.on{opacity:1}
@@ -180,6 +181,7 @@ h2{font-family:var(--display);font-weight:400;font-size:24px;margin:2px 0 10px;l
       <button class="btn" id="sMusic"></button>
       <button class="btn" id="sVibe"></button>
       <button class="btn" id="sLang"></button>
+      <button class="btn" id="sBombPos" data-i="bombReset"></button>
       <button class="btn" id="sRestore" data-i="restore"></button>
       <button class="btn pri" id="sBack" data-i="back"></button>
       <div class="small" id="sPriv"></div>
@@ -249,7 +251,7 @@ const $ = id => document.getElementById(id);
 const TXT = {
  en:{tagline:"Blast through endless waves. Defeat the bosses.",best:"Best",bestWave:"Best wave",crystals:"Crystals",play:"Play",
   boost:"Boosted start",hangar:"Hangar",settings:"Settings",noAds:"Remove ads",noAdsOwned:"✓ Ads removed — rewards are free. Thank you!",
-  help:"Drag anywhere to move. Your ship fires on its own. Tap the red button to drop a bomb.",upgrades:"Upgrades",ships:"Ships",freeGems:"+150 crystals",back:"Back",
+  help:"Drag anywhere to move. Your ship fires on its own. Tap the red button to drop a bomb (hold it to move it anywhere).",bombReset:"Reset bomb button position",bombResetOk:"Bomb button back on the right",upgrades:"Upgrades",ships:"Ships",freeGems:"+150 crystals",back:"Back",
   sound:"Sound",music:"Music",vibe:"Vibration",on:"on",off:"off",lang:"Language: English",restore:"Restore purchase",privacy:"Privacy policy",
   paused:"Paused",resume:"Resume",quit:"End run",shipDown:"Ship down!",revive:"Continue",noThanks:"No thanks",gameOver:"Game over",
   newBest:"★ New best score!",score:"Score",wave:"Wave",double:"Double crystals",again:"Play again",menu:"Menu",
@@ -264,7 +266,7 @@ const TXT = {
   gotGems:"+{n} crystals",doubled:"Crystals doubled!",restored:"Checking purchases…",combo:"Combo x{n}"},
  pt:{tagline:"Rebenta vagas sem fim. Derrota os chefes.",best:"Recorde",bestWave:"Melhor vaga",crystals:"Cristais",play:"Jogar",
   boost:"Arranque turbo",hangar:"Hangar",settings:"Definições",noAds:"Sem anúncios",noAdsOwned:"✓ Sem anúncios — os prémios são grátis. Obrigado!",
-  help:"Arrasta em qualquer lado para mover. A nave dispara sozinha. Toca no botão vermelho para lançar uma bomba.",upgrades:"Melhorias",ships:"Naves",freeGems:"+150 cristais",back:"Voltar",
+  help:"Arrasta em qualquer lado para mover. A nave dispara sozinha. Toca no botão vermelho para lançar uma bomba (mantém o dedo em cima para o mudar de sítio).",bombReset:"Repor posição do botão da bomba",bombResetOk:"Botão da bomba de volta à direita",upgrades:"Melhorias",ships:"Naves",freeGems:"+150 cristais",back:"Voltar",
   sound:"Efeitos",music:"Música",vibe:"Vibração",on:"ligado",off:"desligado",lang:"Língua: Português",restore:"Restaurar compra",privacy:"Política de privacidade",
   paused:"Pausa",resume:"Continuar",quit:"Terminar partida",shipDown:"Nave abatida!",revive:"Continuar",noThanks:"Não, obrigado",gameOver:"Fim de jogo",
   newBest:"★ Novo recorde!",score:"Pontos",wave:"Vaga",double:"Duplicar cristais",again:"Jogar outra vez",menu:"Menu",
@@ -845,7 +847,21 @@ cv.addEventListener("pointermove", e => { if (!drag || e.pointerId !== drag.id |
 const endDrag = e => { if (drag && e.pointerId === drag.id) drag = null; };
 cv.addEventListener("pointerup", endDrag); cv.addEventListener("pointercancel", endDrag);
 const keys = {};
-$("bBomb").addEventListener("pointerdown", e => { e.preventDefault(); e.stopPropagation(); dropBomb(); });
+/* bomb button: quick tap = bomb; press and hold ~0.35 s, then drag = move it anywhere (position is saved) */
+const bb = $("bBomb"); let bdrag = null;
+function placeBomb(){ const p = prof.bombPos, r = $("wrap").getBoundingClientRect();
+  if (!p){ bb.style.left = ""; bb.style.top = ""; bb.style.right = ""; return; }
+  bb.style.right = "auto"; bb.style.left = Math.round(p.x*r.width - 34) + "px"; bb.style.top = Math.round(p.y*r.height - 34) + "px"; }
+bb.addEventListener("pointerdown", e => { e.preventDefault(); e.stopPropagation(); try { bb.setPointerCapture(e.pointerId); } catch(_){}
+  bdrag = {id: e.pointerId, moving: false, t: setTimeout(() => { if (bdrag){ bdrag.moving = true; bb.classList.add("moving"); vibe(30); } }, 350)}; });
+bb.addEventListener("pointermove", e => { if (!bdrag || e.pointerId !== bdrag.id || !bdrag.moving) return; e.preventDefault();
+  const r = $("wrap").getBoundingClientRect();
+  prof.bombPos = { x: Math.max(.09, Math.min(.91, (e.clientX - r.left)/r.width)), y: Math.max(.13, Math.min(.93, (e.clientY - r.top)/r.height)) }; placeBomb(); });
+const bbEnd = e => { if (!bdrag || e.pointerId !== bdrag.id) return; clearTimeout(bdrag.t);
+  if (bdrag.moving){ bb.classList.remove("moving"); save(); } else if (e.type === "pointerup") dropBomb();
+  bdrag = null; };
+bb.addEventListener("pointerup", bbEnd); bb.addEventListener("pointercancel", bbEnd);
+bb.addEventListener("contextmenu", e => e.preventDefault());
 addEventListener("keydown", e => { keys[e.key] = true; if (e.key === " " || e.key === "b") dropBomb(); if (e.key === "Escape" || e.key === "p"){ if (state === "play") pause(); else if (state === "pause") resume(); } });
 addEventListener("keyup", e => keys[e.key] = false);
 setInterval(() => { if (state !== "play") return; const v = 7; if (keys.ArrowLeft) pl.tx = Math.max(16, pl.tx - v); if (keys.ArrowRight) pl.tx = Math.min(VW-16, pl.tx + v);
@@ -945,6 +961,7 @@ $("sSound").onclick = togS; $("pSound").onclick = togS; $("sMusic").onclick = to
 $("sVibe").onclick = () => { prof.vibe = !prof.vibe; save(); syncAudio(); vibe(40); };
 $("sLang").onclick = () => { LANG = LANG === "en" ? "pt" : "en"; prof.lang = LANG; save(); applyLang(); syncAudio(); };
 $("sRestore").onclick = () => { if (window.NATIVE) window.NATIVE.restore(); toast(T("restored")); };
+$("sBombPos").onclick = () => { prof.bombPos = null; save(); placeBomb(); toast(T("bombResetOk")); };
 $("sBack").onclick = menu;
 
 /* ================= ADS & PURCHASE ================= */
@@ -992,7 +1009,7 @@ $("bMenu").onclick = () => maybeInter(menu);
 $("bOverHangar").onclick = () => maybeInter(() => { menu(); hangarBack = menu; hangar(); });
 
 /* ================= START ================= */
-applyLang(); resize(); addEventListener("resize", resize); if (document.fonts) document.fonts.ready.then(buildSprites); menu(); requestAnimationFrame(loop);
+applyLang(); resize(); addEventListener("resize", resize); addEventListener("resize", () => placeBomb()); placeBomb(); if (document.fonts) document.fonts.ready.then(buildSprites); menu(); requestAnimationFrame(loop);
 document.addEventListener("pointerdown", () => { audio(); if (AC && AC.state === "suspended") AC.resume(); musTick(); }, {once: true});
 </script>
 </body>
